@@ -13,17 +13,15 @@
             min-height: 100vh;
         }
         .glass {
-            background: rgba(255, 255, 255, 0.7);
-            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(8px);
             border: 1px solid rgba(255, 255, 255, 0.5);
         }
         .neo-card {
             border-radius: 24px;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .neo-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: visible;
         }
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
@@ -39,69 +37,93 @@
             background-size: 400% 400%;
             animation: gradient-bg 15s ease infinite;
         }
+
+        .circle-chart { width: 70px; height: 70px; }
+        .circle-chart__circle { stroke: #6366f1; stroke-width: 3; stroke-linecap: round; fill: none; transition: stroke-dasharray 0.6s ease; }
+        .circle-chart__background { stroke: #f1f5f9; stroke-width: 3; fill: none; }
+        
+        /* زر الحذف - تحسين الوصولية */
+        .delete-btn-actual {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            z-index: 50; 
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 38px;
+            height: 38px;
+            background: #fff1f2;
+            color: #f43f5e;
+            border: 1.5px solid #fecdd3;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            /* منع أي عنصر داخل الزر من اعتراض النقرة */
+            pointer-events: auto !important;
+        }
+        .delete-btn-actual:hover {
+            background: #f43f5e;
+            color: white;
+            transform: scale(1.1) rotate(8deg);
+            box-shadow: 0 10px 15px -3px rgba(244, 63, 94, 0.3);
+        }
+        .delete-btn-actual:active {
+            transform: scale(0.9);
+        }
+        .delete-btn-actual svg {
+            pointer-events: none;
+        }
     </style>
 </head>
 <body class="p-4 md:p-10 text-slate-900">
     <div class="max-w-7xl mx-auto">
-        <!-- Header -->
-        <header class="flex flex-col md:flex-row justify-between items-center mb-12 gap-6">
+        <header class="flex flex-col md:flex-row justify-between items-center mb-10 gap-6">
             <div class="text-center md:text-left">
                 <div class="flex items-center justify-center md:justify-start gap-2 mb-1">
                     <div class="w-8 h-8 animated-bg rounded-lg shadow-lg flex items-center justify-center text-white font-bold italic">N</div>
                     <h1 class="text-3xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600">NexGen Tracker</h1>
                 </div>
-                <p class="text-slate-500 font-medium">Manage your college and online courses in one place.</p>
+                <p class="text-slate-500 font-medium italic">Your Academic Progress Visualized</p>
             </div>
             <div class="flex items-center gap-3 relative z-10">
-                <button onclick="window.location.reload()" class="px-5 py-2.5 rounded-2xl font-bold text-slate-600 hover:bg-white border border-transparent hover:border-slate-200 transition-all">Refresh</button>
                 <button onclick="openAddCourseModal()" class="animated-bg text-white px-6 py-3 rounded-2xl font-bold shadow-xl shadow-indigo-200 hover:scale-105 transition-all active:scale-95">Add Course</button>
             </div>
         </header>
 
-        <!-- Stats -->
-        <div id="statsRow" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10"></div>
-
-        <!-- Main Grid -->
+        <div id="analyticsSection" class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10"></div>
         <div id="coursesGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"></div>
 
-        <!-- Empty State -->
         <div id="emptyState" class="hidden flex flex-col items-center justify-center py-32 text-slate-400 text-center">
             <div class="mb-4 text-6xl">📁</div>
             <h2 class="text-xl font-bold text-slate-500">No courses yet</h2>
-            <p class="text-sm">Click "Add Course" to get started.</p>
+            <p class="text-sm">Start your journey by adding a course.</p>
         </div>
     </div>
 
     <!-- Modals -->
-    <!-- Add Course Modal -->
     <div id="addCourseModal" class="fixed inset-0 bg-slate-900/60 hidden flex items-center justify-center p-4 z-[100] backdrop-blur-sm">
-        <div class="bg-white rounded-[32px] p-8 max-w-md w-full shadow-2xl scale-up">
-            <h3 class="text-2xl font-black mb-6 text-slate-800">New Course 📚</h3>
+        <div class="bg-white rounded-[32px] p-8 max-w-md w-full shadow-2xl">
+            <h3 class="text-2xl font-black mb-6 text-slate-800 text-center">New Academic Course 📚</h3>
             <div class="space-y-5">
-                <div>
-                    <label class="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Name</label>
-                    <input type="text" id="newCourseName" placeholder="Course Title" class="w-full bg-slate-50 border-2 border-transparent focus:border-indigo-500 rounded-2xl px-5 py-3 outline-none transition-all">
-                </div>
-                <div>
-                    <label class="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Type</label>
-                    <select id="newCourseType" class="w-full bg-slate-50 border-2 border-transparent focus:border-indigo-500 rounded-2xl px-5 py-3 outline-none cursor-pointer">
-                        <option value="College Course">College Course (Academic)</option>
-                        <option value="External Course">External Course (Skills/Online)</option>
-                    </select>
-                </div>
+                <input type="text" id="newCourseName" placeholder="Name..." class="w-full bg-slate-50 border-2 border-transparent focus:border-indigo-500 rounded-2xl px-5 py-3 outline-none transition-all">
+                <select id="newCourseType" class="w-full bg-slate-50 border-2 border-transparent focus:border-indigo-500 rounded-2xl px-5 py-3 outline-none cursor-pointer">
+                    <option value="College Course">College Course (Academic)</option>
+                    <option value="External Course">External Course (Skills/Online)</option>
+                </select>
             </div>
             <div class="flex gap-3 mt-10">
-                <button onclick="closeModal('addCourseModal')" class="flex-1 bg-slate-100 p-4 rounded-2xl font-bold text-slate-600 hover:bg-slate-200 transition-all">Cancel</button>
-                <button onclick="confirmAddCourse()" class="flex-1 animated-bg text-white p-4 rounded-2xl font-bold hover:opacity-90 transition-all">Create</button>
+                <button onclick="closeModal('addCourseModal')" class="flex-1 bg-slate-100 p-4 rounded-2xl font-bold text-slate-600">Cancel</button>
+                <button onclick="confirmAddCourse()" class="flex-1 animated-bg text-white p-4 rounded-2xl font-bold">Create</button>
             </div>
         </div>
     </div>
 
-    <!-- Universal Input Modal -->
     <div id="inputModal" class="fixed inset-0 bg-slate-900/60 hidden flex items-center justify-center p-4 z-[100] backdrop-blur-sm">
         <div class="bg-white rounded-[32px] p-8 max-w-md w-full shadow-2xl">
             <h3 id="inputModalTitle" class="text-2xl font-black mb-6 text-slate-800 text-center">Add Item</h3>
-            <input type="text" id="inputModalValue" placeholder="Title..." class="w-full bg-slate-50 border-2 border-transparent focus:border-indigo-500 rounded-2xl px-5 py-3 outline-none mb-6">
+            <input type="text" id="inputModalValue" placeholder="..." class="w-full bg-slate-50 border-2 border-transparent focus:border-indigo-500 rounded-2xl px-5 py-3 outline-none mb-6">
             <div class="flex gap-3">
                 <button onclick="closeModal('inputModal')" class="flex-1 bg-slate-100 p-4 rounded-2xl font-bold text-slate-500">Cancel</button>
                 <button id="inputModalConfirmBtn" class="flex-1 bg-indigo-600 text-white p-4 rounded-2xl font-bold">Confirm</button>
@@ -110,22 +132,15 @@
     </div>
 
     <script>
-        // Key updated to v10 to ensure fresh structure for the English labels
-        let courses = JSON.parse(localStorage.getItem('academic_v10')) || [];
+        let courses = JSON.parse(localStorage.getItem('academic_v11')) || [];
 
         function save() {
-            localStorage.setItem('academic_v10', JSON.stringify(courses));
+            localStorage.setItem('academic_v11', JSON.stringify(courses));
             render();
         }
 
-        function openAddCourseModal() {
-            document.getElementById('newCourseName').value = '';
-            document.getElementById('addCourseModal').classList.remove('hidden');
-        }
-
-        function closeModal(id) {
-            document.getElementById(id).classList.add('hidden');
-        }
+        function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+        function openAddCourseModal() { document.getElementById('addCourseModal').classList.remove('hidden'); }
 
         function confirmAddCourse() {
             const name = document.getElementById('newCourseName').value.trim();
@@ -141,7 +156,6 @@
                     exams: { label: 'Exams & Quizzes', items: [] }
                 };
             } else {
-                // Translated labels for External Courses
                 sections = {
                     study: { label: 'Study Content', items: [] },
                     mcq: { label: 'MCQ Practice', items: [] },
@@ -150,50 +164,35 @@
                 };
             }
 
-            courses.push({
-                id: Date.now(),
-                name,
-                type,
-                sections,
-                projects: []
-            });
+            courses.push({ id: Date.now(), name, type, sections, projects: [] });
+            document.getElementById('newCourseName').value = '';
             closeModal('addCourseModal');
             save();
         }
 
-        function deleteCourse(id) { if(confirm('Are you sure you want to remove this course?')) { courses = courses.filter(c => c.id !== id); save(); } }
-        
-        function deleteProject(cId, pId) { 
+        // دالة الحذف تم تحديثها لضمان التنفيذ
+        window.deleteCourse = function(id) {
+            // توقف عن أي أحداث أخرى
+            if (confirm("هل أنت متأكد من حذف هذا الكورس؟ جميع البيانات سيتم مسحها.")) {
+                courses = courses.filter(c => c.id !== id);
+                save();
+            }
+        };
+
+        function toggleItem(cId, key, iId) {
             const course = courses.find(c => c.id === cId);
-            course.projects = course.projects.filter(p => p.id !== pId);
+            const item = course.sections[key].items.find(i => i.id === iId);
+            item.completed = !item.completed;
+            item.completedAt = item.completed ? new Date().toISOString() : null;
             save();
         }
-
-        function deleteTask(cId, pId, tId) {
-            const p = courses.find(c => c.id === cId).projects.find(p => p.id === pId);
-            p.tasks = p.tasks.filter(t => t.id !== tId);
-            save();
-        }
-
-        function deleteItem(cId, key, iId) {
-            const course = courses.find(c => c.id === cId);
-            course.sections[key].items = course.sections[key].items.filter(i => i.id !== iId);
-            save();
-        }
-
         function toggleTask(cId, pId, tId) {
             const p = courses.find(c => c.id === cId).projects.find(p => p.id === pId);
             const t = p.tasks.find(t => t.id === tId);
             t.completed = !t.completed;
+            t.completedAt = t.completed ? new Date().toISOString() : null;
             save();
         }
-        
-        function toggleItem(cId, key, iId) {
-            const item = courses.find(c => c.id === cId).sections[key].items.find(i => i.id === iId);
-            item.completed = !item.completed;
-            save();
-        }
-
         function openAddProject(courseId) {
             const modal = document.getElementById('inputModal');
             document.getElementById('inputModalTitle').innerText = 'New Project';
@@ -207,7 +206,6 @@
                 save();
             };
         }
-
         function openAddTask(courseId, projectId) {
             const modal = document.getElementById('inputModal');
             document.getElementById('inputModalTitle').innerText = 'New Task';
@@ -217,12 +215,11 @@
                 const text = document.getElementById('inputModalValue').value.trim();
                 if (!text) return;
                 const p = courses.find(c => c.id === courseId).projects.find(p => p.id === projectId);
-                p.tasks.push({ id: Date.now(), text, completed: false });
+                p.tasks.push({ id: Date.now(), text, completed: false, completedAt: null });
                 closeModal('inputModal');
                 save();
             };
         }
-
         function openAddItem(courseId, key, label) {
             const modal = document.getElementById('inputModal');
             document.getElementById('inputModalTitle').innerText = `Add to ${label}`;
@@ -231,118 +228,147 @@
             document.getElementById('inputModalConfirmBtn').onclick = () => {
                 const text = document.getElementById('inputModalValue').value.trim();
                 if (!text) return;
-                courses.find(c => c.id === courseId).sections[key].items.push({ id: Date.now(), text, completed: false });
+                courses.find(c => c.id === courseId).sections[key].items.push({ id: Date.now(), text, completed: false, completedAt: null });
                 closeModal('inputModal');
                 save();
             };
         }
+        function deleteItem(cId, key, iId) { courses.find(c => c.id === cId).sections[key].items = courses.find(c => c.id === cId).sections[key].items.filter(i => i.id !== iId); save(); }
+        function deleteTask(cId, pId, tId) { courses.find(c => c.id === cId).projects.find(p => p.id === pId).tasks = courses.find(c => c.id === cId).projects.find(p => p.id === pId).tasks.filter(t => t.id !== tId); save(); }
+        function deleteProject(cId, pId) { courses.find(c => c.id === cId).projects = courses.find(c => c.id === cId).projects.filter(p => p.id !== pId); save(); }
 
-        function render() {
-            const grid = document.getElementById('coursesGrid');
-            const stats = document.getElementById('statsRow');
-            grid.innerHTML = '';
-            
-            const total = courses.length;
-            const completedCount = courses.reduce((acc, c) => {
-                let count = 0;
-                Object.values(c.sections).forEach(s => count += s.items.filter(i => i.completed).length);
-                c.projects.forEach(p => count += p.tasks.filter(t => t.completed).length);
-                return acc + count;
-            }, 0);
-
-            stats.innerHTML = `
-                <div class="bg-white p-5 rounded-[24px] shadow-sm border border-slate-100">
-                    <p class="text-[10px] font-black text-slate-400 uppercase mb-1">Total Courses</p>
-                    <p class="text-2xl font-black text-indigo-600">${total}</p>
-                </div>
-                <div class="bg-white p-5 rounded-[24px] shadow-sm border border-slate-100">
-                    <p class="text-[10px] font-black text-slate-400 uppercase mb-1">Tasks Done</p>
-                    <p class="text-2xl font-black text-emerald-500">${completedCount}</p>
-                </div>
-                <div class="bg-white p-5 rounded-[24px] shadow-sm border border-slate-100">
-                    <p class="text-[10px] font-black text-slate-400 uppercase mb-1">Status</p>
-                    <p class="text-2xl font-black text-purple-500">Live</p>
-                </div>
-                <div class="bg-white p-5 rounded-[24px] shadow-sm border border-slate-100">
-                    <p class="text-[10px] font-black text-slate-400 uppercase mb-1">System</p>
-                    <p class="text-2xl font-black text-indigo-400">Sync</p>
+        function createCircularChart(percentage, color) {
+            const radius = 15.9155;
+            const dashArray = (percentage / 100) * (2 * Math.PI * radius);
+            return `
+                <div class="relative flex items-center justify-center">
+                    <svg viewBox="0 0 36 36" class="circle-chart">
+                        <path class="circle-chart__background" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                        <path class="circle-chart__circle" style="stroke: ${color}; stroke-dasharray: ${dashArray}, 100;" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                    </svg>
+                    <span class="absolute text-[11px] font-black" style="color: ${color}">${percentage}%</span>
                 </div>
             `;
+        }
 
+        function calculateAnalytics() {
+            const now = new Date();
+            let dTot = 0, dDon = 0, wTot = 0, wDon = 0, mTot = 0, mDon = 0;
+            const process = (item) => {
+                const cDate = new Date(item.id);
+                const diff = (now - cDate) / 86400000;
+                if (diff < 1) dTot++; if (diff < 7) wTot++; if (diff < 30) mTot++;
+                if (item.completedAt) {
+                    const doneDiff = (now - new Date(item.completedAt)) / 86400000;
+                    if (doneDiff < 1) dDon++; if (doneDiff < 7) wDon++; if (doneDiff < 30) mDon++;
+                }
+            };
+            courses.forEach(c => {
+                Object.values(c.sections).forEach(s => s.items.forEach(process));
+                c.projects.forEach(p => p.tasks.forEach(process));
+            });
+            const getPerc = (d, t) => t === 0 ? 0 : Math.round((d/t)*100);
+            document.getElementById('analyticsSection').innerHTML = `
+                <div class="bg-white p-6 rounded-[24px] shadow-sm border border-slate-100 flex items-center justify-between">
+                    <div><p class="text-[10px] font-black text-slate-400 uppercase mb-1">Daily Progress</p><p class="text-2xl font-black text-indigo-600">${dDon} <span class="text-xs font-medium text-slate-400">of ${dTot}</span></p></div>
+                    ${createCircularChart(getPerc(dDon, dTot), '#6366f1')}
+                </div>
+                <div class="bg-white p-6 rounded-[24px] shadow-sm border border-slate-100 flex items-center justify-between">
+                    <div><p class="text-[10px] font-black text-slate-400 uppercase mb-1">Weekly Goal</p><p class="text-2xl font-black text-purple-600">${wDon} <span class="text-xs font-medium text-slate-400">of ${wTot}</span></p></div>
+                    ${createCircularChart(getPerc(wDon, wTot), '#a855f7')}
+                </div>
+                <div class="bg-white p-6 rounded-[24px] shadow-sm border border-slate-100 flex items-center justify-between">
+                    <div><p class="text-[10px] font-black text-slate-400 uppercase mb-1">Monthly Focus</p><p class="text-2xl font-black text-emerald-600">${mDon} <span class="text-xs font-medium text-slate-400">of ${mTot}</span></p></div>
+                    ${createCircularChart(getPerc(mDon, mTot), '#10b981')}
+                </div>
+            `;
+        }
+
+        function renderProgress(label, items) {
+            const count = items.length;
+            const done = items.filter(i => i.completed).length;
+            const progress = count ? Math.round((done/count)*100) : 0;
+            return `
+                <div class="flex justify-between items-center mb-1">
+                    <h5 class="text-[11px] font-extrabold text-slate-700">${label}</h5>
+                    <span class="text-[10px] font-black text-indigo-600">${progress}%</span>
+                </div>
+                <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden mb-3">
+                    <div class="bg-indigo-500 h-full transition-all duration-500" style="width: ${progress}%"></div>
+                </div>
+            `;
+        }
+
+        function render() {
+            calculateAnalytics();
+            const grid = document.getElementById('coursesGrid');
+            grid.innerHTML = '';
             document.getElementById('emptyState').classList.toggle('hidden', courses.length > 0);
 
             courses.forEach(course => {
                 const card = document.createElement('div');
                 card.className = "neo-card glass p-8 flex flex-col h-full";
                 
-                let projectsHtml = course.projects.map(p => {
-                    const progress = p.tasks.length ? Math.round((p.tasks.filter(t=>t.completed).length/p.tasks.length)*100) : 0;
-                    return `
-                        <div class="bg-white/60 rounded-3xl p-4 mb-4 border border-slate-200 shadow-sm relative group/proj">
-                            <button onclick="deleteProject(${course.id}, ${p.id})" class="absolute top-3 right-3 opacity-0 group-hover/proj:opacity-100 text-slate-300 hover:text-rose-500 transition-all">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                            </button>
-                            <div class="flex justify-between items-center mb-2">
-                                <h5 class="text-xs font-extrabold text-slate-800">${p.title}</h5>
-                                <span class="text-[9px] font-black text-indigo-600">${progress}%</span>
-                            </div>
-                            <div class="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden mb-3">
-                                <div class="bg-indigo-500 h-full transition-all" style="width: ${progress}%"></div>
-                            </div>
-                            <div class="space-y-1.5 mb-3">
-                                ${p.tasks.map(t => `
-                                    <div class="flex items-center justify-between group/task">
-                                        <label class="flex items-center gap-2 cursor-pointer flex-1">
-                                            <input type="checkbox" ${t.completed ? 'checked' : ''} onchange="toggleTask(${course.id}, ${p.id}, ${t.id})" class="w-3.5 h-3.5 rounded border-slate-300 text-indigo-600 focus:ring-0">
-                                            <span class="text-[11px] ${t.completed ? 'line-through text-slate-300' : 'text-slate-600 font-semibold'}">${t.text}</span>
-                                        </label>
-                                        <button onclick="deleteTask(${course.id}, ${p.id}, ${t.id})" class="opacity-0 group-hover/task:opacity-100 text-rose-300 hover:scale-110 transition-all">
-                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                                        </button>
-                                    </div>
-                                `).join('')}
-                            </div>
-                            <button onclick="openAddTask(${course.id}, ${p.id})" class="text-[9px] font-black text-indigo-500 uppercase hover:underline">+ Add Task</button>
+                // إضافة معرّف الكورس للبطاقة لتسهيل الوصول إليها برمجياً
+                card.dataset.id = course.id;
+
+                let projectsHtml = course.projects.map(p => `
+                    <div class="bg-white/60 rounded-3xl p-4 mb-4 border border-slate-200 shadow-sm relative group/proj">
+                        <button onclick="deleteProject(${course.id}, ${p.id})" class="absolute top-3 right-3 opacity-0 group-hover/proj:opacity-100 text-slate-300 hover:text-rose-500 transition-all">×</button>
+                        ${renderProgress(p.title, p.tasks)}
+                        <div class="space-y-1.5 mb-3">
+                            ${p.tasks.map(t => `
+                                <div class="flex items-center justify-between group/task">
+                                    <label class="flex items-center gap-2 cursor-pointer flex-1 min-w-0">
+                                        <input type="checkbox" ${t.completed ? 'checked' : ''} onchange="toggleTask(${course.id}, ${p.id}, ${t.id})" class="w-3.5 h-3.5 rounded border-slate-300 text-indigo-600">
+                                        <span class="text-[11px] truncate ${t.completed ? 'line-through text-slate-300 italic' : 'text-slate-600 font-semibold'}">${t.text}</span>
+                                    </label>
+                                    <button onclick="deleteTask(${course.id}, ${p.id}, ${t.id})" class="opacity-0 group-hover/task:opacity-100 text-rose-300 px-1 ml-1 transition-all">×</button>
+                                </div>
+                            `).join('')}
                         </div>
-                    `;
-                }).join('');
+                        <button onclick="openAddTask(${course.id}, ${p.id})" class="text-[9px] font-black text-indigo-500 uppercase hover:underline">+ Add Task</button>
+                    </div>
+                `).join('');
 
                 let sectionsHtml = Object.entries(course.sections).map(([key, sec]) => `
                     <div class="mt-6">
-                        <div class="flex justify-between items-center mb-2">
+                        <div class="flex justify-between items-center mb-1">
                             <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest">${sec.label}</h4>
                             <button onclick="openAddItem(${course.id}, '${key}', '${sec.label}')" class="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 hover:bg-indigo-600 hover:text-white transition-all shadow-sm">+</button>
                         </div>
+                        ${renderProgress('', sec.items)}
                         <div class="space-y-1.5">
                             ${sec.items.map(i => `
                                 <div class="flex items-center justify-between group/item">
-                                    <label class="flex items-center gap-3 cursor-pointer flex-1">
-                                        <input type="checkbox" ${i.completed ? 'checked' : ''} onchange="toggleItem(${course.id}, '${key}', ${i.id})" class="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-0">
-                                        <span class="text-xs ${i.completed ? 'line-through text-slate-300' : 'text-slate-600 font-semibold'}">${i.text}</span>
+                                    <label class="flex items-center gap-3 cursor-pointer flex-1 min-w-0">
+                                        <input type="checkbox" ${i.completed ? 'checked' : ''} onchange="toggleItem(${course.id}, '${key}', ${i.id})" class="w-4 h-4 rounded border-slate-300 text-indigo-600">
+                                        <span class="text-xs truncate ${i.completed ? 'line-through text-slate-300 italic' : 'text-slate-600 font-semibold'}">${i.text}</span>
                                     </label>
-                                    <button onclick="deleteItem(${course.id}, '${key}', ${i.id})" class="opacity-0 group-hover/item:opacity-100 text-rose-300 hover:scale-110 transition-all">
-                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                                    </button>
+                                    <button onclick="deleteItem(${course.id}, '${key}', ${i.id})" class="opacity-0 group-hover/item:opacity-100 text-rose-300 px-1 transition-all">×</button>
                                 </div>
-                            `).join('') || '<p class="text-[10px] text-slate-300 italic">No entries yet</p>'}
+                            `).join('')}
                         </div>
                     </div>
                 `).join('');
 
                 card.innerHTML = `
-                    <div class="flex justify-between items-start mb-6">
-                        <div class="flex-1 pr-4">
-                            <span class="text-[10px] font-black px-3 py-1 rounded-full ${course.type === 'External Course' ? 'bg-purple-100 text-purple-600' : 'bg-indigo-100 text-indigo-600'} uppercase mb-2 inline-block tracking-widest">${course.type}</span>
-                            <h3 class="text-2xl font-black text-slate-800 leading-tight">${course.name}</h3>
-                        </div>
-                        <button onclick="deleteCourse(${course.id})" class="p-2.5 rounded-2xl bg-rose-50 text-rose-400 hover:bg-rose-500 hover:text-white transition-all shadow-sm">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                        </button>
+                    <button type="button" class="delete-btn-actual" aria-label="Delete Course" onclick="deleteCourse(${course.id}); event.stopPropagation();">
+                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                         </svg>
+                    </button>
+
+                    <div class="mb-6 pr-12">
+                        <span class="text-[10px] font-black px-3 py-1 rounded-full ${course.type === 'External Course' ? 'bg-purple-100 text-purple-600' : 'bg-indigo-100 text-indigo-600'} uppercase mb-2 inline-block tracking-widest">${course.type}</span>
+                        <h3 class="text-2xl font-black text-slate-800 leading-tight break-words">${course.name}</h3>
                     </div>
+                    
                     <div class="flex justify-between items-center mb-4 pt-4 border-t border-slate-100">
-                        <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Ongoing Projects</h4>
+                        <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Active Projects</h4>
                         <button onclick="openAddProject(${course.id})" class="px-3 py-1.5 bg-slate-900 text-white text-[9px] font-black rounded-lg hover:bg-indigo-600 transition-all">+ PROJECT</button>
                     </div>
+
                     <div class="flex-1 custom-scrollbar overflow-y-auto pr-1">
                         ${projectsHtml}
                         ${sectionsHtml}
