@@ -1,1 +1,350 @@
 # Courses-Tracker.github.io
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Academic Course Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; }
+        .custom-shadow { box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.1); }
+        .progress-bar { transition: width 0.4s ease-in-out; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+    <div class="max-w-6xl mx-auto">
+        <!-- Header -->
+        <header class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+            <div>
+                <h1 class="text-3xl font-bold text-indigo-800">Academic Tracker</h1>
+                <p class="text-slate-500">Manage courses and multiple sub-projects with detailed tracking</p>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="showWeeklyReport()" class="bg-indigo-100 text-indigo-700 px-4 py-2 rounded-lg font-semibold hover:bg-indigo-200 transition">Weekly Report</button>
+                <button onclick="openAddCourseModal()" class="bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-indigo-700 shadow-lg transition">Add New Course</button>
+            </div>
+        </header>
+
+        <!-- Main Dashboard Grid -->
+        <div id="coursesGrid" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
+
+        <!-- Empty State -->
+        <div id="emptyState" class="hidden text-center py-20 text-slate-400">
+            <h2 class="text-xl">No courses yet. Click "Add New Course" to begin.</h2>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div id="addCourseModal" class="fixed inset-0 bg-black/60 hidden flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+        <div class="bg-white rounded-3xl p-8 max-w-md w-full animate-in fade-in zoom-in duration-200">
+            <h3 class="text-2xl font-bold mb-4 text-indigo-800">New Course</h3>
+            <div class="space-y-4">
+                <input type="text" id="newCourseName" placeholder="Course Name" class="w-full border-2 border-slate-100 rounded-xl px-4 py-2 focus:border-indigo-500 outline-none">
+                <select id="newCourseType" class="w-full border-2 border-slate-100 rounded-xl px-4 py-2 outline-none">
+                    <option value="College">College Course</option>
+                    <option value="External">External Course</option>
+                </select>
+            </div>
+            <div class="flex gap-3 mt-8">
+                <button onclick="closeModal('addCourseModal')" class="flex-1 bg-slate-100 p-3 rounded-xl font-bold">Cancel</button>
+                <button onclick="confirmAddCourse()" class="flex-1 bg-indigo-600 text-white p-3 rounded-xl font-bold">Create</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Input Modal -->
+    <div id="inputModal" class="fixed inset-0 bg-black/60 hidden flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+        <div class="bg-white rounded-3xl p-8 max-w-md w-full relative">
+            <h3 id="inputModalTitle" class="text-2xl font-bold mb-4 text-indigo-800">Add Item</h3>
+            <input type="text" id="inputModalValue" placeholder="Enter name..." class="w-full border-2 border-slate-100 rounded-xl px-4 py-2 focus:border-indigo-500 outline-none mb-6">
+            <div class="flex gap-3">
+                <button onclick="closeModal('inputModal')" class="flex-1 bg-slate-100 p-3 rounded-xl font-bold">Cancel</button>
+                <button id="inputModalConfirmBtn" class="flex-1 bg-indigo-600 text-white p-3 rounded-xl font-bold">Add</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Report Modal -->
+    <div id="reportModal" class="fixed inset-0 bg-black/60 hidden flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+        <div class="bg-white rounded-3xl p-8 max-w-lg w-full relative max-h-[80vh] overflow-y-auto no-scrollbar">
+            <h3 class="text-2xl font-bold mb-6 text-indigo-800">Weekly Progress Report</h3>
+            <div id="reportContainer" class="space-y-4"></div>
+            <div class="mt-8">
+                <button onclick="closeModal('reportModal')" class="w-full bg-slate-100 p-3 rounded-xl font-bold text-slate-700">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let courses = JSON.parse(localStorage.getItem('academic_v2')) || [];
+
+        function save() {
+            localStorage.setItem('academic_v2', JSON.stringify(courses));
+            render();
+        }
+
+        // --- Course Management ---
+        function openAddCourseModal() {
+            document.getElementById('newCourseName').value = '';
+            document.getElementById('addCourseModal').classList.remove('hidden');
+        }
+
+        function confirmAddCourse() {
+            const name = document.getElementById('newCourseName').value.trim();
+            const type = document.getElementById('newCourseType').value;
+            if (!name) return;
+
+            courses.push({
+                id: Date.now(),
+                name: name,
+                type: type,
+                sections: {
+                    content: { label: 'Study Content', items: [] },
+                    assignments: { label: 'Assignments', items: [] }, // New Section Added
+                    sheets: { label: 'Sheets / Practice', items: [] },
+                    exams: { label: 'Exams & Quizzes', items: [] }
+                },
+                projects: []
+            });
+            closeModal('addCourseModal');
+            save();
+        }
+
+        // --- Project & Task Management ---
+        function openAddProject(courseId) {
+            const modal = document.getElementById('inputModal');
+            document.getElementById('inputModalTitle').innerText = 'Create New Project';
+            document.getElementById('inputModalValue').value = '';
+            modal.classList.remove('hidden');
+            document.getElementById('inputModalConfirmBtn').onclick = () => {
+                const title = document.getElementById('inputModalValue').value.trim();
+                if (!title) return;
+                const course = courses.find(c => c.id === courseId);
+                course.projects.push({ id: Date.now(), title, tasks: [] });
+                closeModal('inputModal');
+                save();
+            };
+        }
+
+        function openAddTask(courseId, projectId) {
+            const modal = document.getElementById('inputModal');
+            document.getElementById('inputModalTitle').innerText = 'Add Task to Project';
+            document.getElementById('inputModalValue').value = '';
+            modal.classList.remove('hidden');
+            document.getElementById('inputModalConfirmBtn').onclick = () => {
+                const text = document.getElementById('inputModalValue').value.trim();
+                if (!text) return;
+                const course = courses.find(c => c.id === courseId);
+                const project = course.projects.find(p => p.id === projectId);
+                project.tasks.push({ id: Date.now(), text, completed: false, date: new Date().toISOString() });
+                closeModal('inputModal');
+                save();
+            };
+        }
+
+        function openAddSectionItem(courseId, sectionKey, label) {
+            const modal = document.getElementById('inputModal');
+            document.getElementById('inputModalTitle').innerText = `Add to ${label}`;
+            document.getElementById('inputModalValue').value = '';
+            modal.classList.remove('hidden');
+            document.getElementById('inputModalConfirmBtn').onclick = () => {
+                const text = document.getElementById('inputModalValue').value.trim();
+                if (!text) return;
+                const course = courses.find(c => c.id === courseId);
+                // Fallback for existing courses that might not have the 'assignments' section key yet
+                if (!course.sections[sectionKey]) {
+                    course.sections[sectionKey] = { label: label, items: [] };
+                }
+                course.sections[sectionKey].items.push({ id: Date.now(), text, completed: false, date: new Date().toISOString() });
+                closeModal('inputModal');
+                save();
+            };
+        }
+
+        function toggleTask(courseId, projectId, taskId) {
+            const course = courses.find(c => c.id === courseId);
+            const project = course.projects.find(p => p.id === projectId);
+            const task = project.tasks.find(t => t.id === taskId);
+            task.completed = !task.completed;
+            task.completedAt = task.completed ? new Date().toISOString() : null;
+            save();
+        }
+
+        function toggleSectionItem(courseId, sectionKey, itemId) {
+            const course = courses.find(c => c.id === courseId);
+            const item = course.sections[sectionKey].items.find(i => i.id === itemId);
+            item.completed = !item.completed;
+            item.completedAt = item.completed ? new Date().toISOString() : null;
+            save();
+        }
+
+        function deleteCourse(id) {
+            if(confirm('Delete course?')) { courses = courses.filter(c => c.id !== id); save(); }
+        }
+
+        function deleteProject(courseId, projectId) {
+            if(confirm('Delete project?')) {
+                const course = courses.find(c => c.id === courseId);
+                course.projects = course.projects.filter(p => p.id !== projectId);
+                save();
+            }
+        }
+
+        function calculateProjectProgress(project) {
+            if (project.tasks.length === 0) return 0;
+            const done = project.tasks.filter(t => t.completed).length;
+            return Math.round((done / project.tasks.length) * 100);
+        }
+
+        function showWeeklyReport() {
+            const reportModal = document.getElementById('reportModal');
+            const container = document.getElementById('reportContainer');
+            container.innerHTML = '';
+            
+            const now = new Date();
+            const lastWeek = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+            courses.forEach(course => {
+                let itemsThisWeek = 0;
+                let itemsDoneThisWeek = 0;
+
+                // Check sections
+                Object.values(course.sections).forEach(section => {
+                    section.items.forEach(item => {
+                        const date = new Date(item.date);
+                        if (date >= lastWeek) {
+                            itemsThisWeek++;
+                            if (item.completed) itemsDoneThisWeek++;
+                        }
+                    });
+                });
+
+                // Check projects
+                course.projects.forEach(proj => {
+                    proj.tasks.forEach(task => {
+                        const date = new Date(task.date);
+                        if (date >= lastWeek) {
+                            itemsThisWeek++;
+                            if (task.completed) itemsDoneThisWeek++;
+                        }
+                    });
+                });
+
+                const percentage = itemsThisWeek > 0 ? Math.round((itemsDoneThisWeek / itemsThisWeek) * 100) : 0;
+
+                const courseReport = document.createElement('div');
+                courseReport.className = "p-4 bg-slate-50 rounded-2xl border border-slate-100";
+                courseReport.innerHTML = `
+                    <div class="flex justify-between items-center mb-2">
+                        <h4 class="font-bold text-slate-800">${course.name}</h4>
+                        <span class="text-xs font-bold px-2 py-1 rounded bg-indigo-100 text-indigo-600">${percentage}% Effort</span>
+                    </div>
+                    <p class="text-[11px] text-slate-500 mb-2">Activity this week: ${itemsDoneThisWeek} / ${itemsThisWeek} tasks completed</p>
+                    <div class="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
+                        <div class="bg-indigo-500 h-full" style="width: ${percentage}%"></div>
+                    </div>
+                `;
+                container.appendChild(courseReport);
+            });
+
+            if (courses.length === 0) {
+                container.innerHTML = '<p class="text-center py-8 text-slate-400">No data to report yet.</p>';
+            }
+
+            reportModal.classList.remove('hidden');
+        }
+
+        function render() {
+            const grid = document.getElementById('coursesGrid');
+            grid.innerHTML = '';
+            document.getElementById('emptyState').classList.toggle('hidden', courses.length > 0);
+
+            courses.forEach(course => {
+                // Compatibility Fix: Ensure 'assignments' section exists for courses created before this update
+                if (!course.sections.assignments) {
+                    course.sections.assignments = { label: 'Assignments', items: [] };
+                }
+
+                const card = document.createElement('div');
+                card.className = "bg-white rounded-3xl p-6 custom-shadow border border-slate-100 flex flex-col h-fit";
+                
+                let sectionsHtml = '';
+                for (const [key, section] of Object.entries(course.sections)) {
+                    const itemsHtml = section.items.map(item => `
+                        <div class="flex items-center gap-2 py-1">
+                            <input type="checkbox" ${item.completed ? 'checked' : ''} onchange="toggleSectionItem(${course.id}, '${key}', ${item.id})" class="w-4 h-4 rounded text-indigo-600">
+                            <span class="text-sm ${item.completed ? 'line-through text-slate-300' : 'text-slate-600'}">${item.text}</span>
+                        </div>
+                    `).join('');
+                    sectionsHtml += `
+                        <div class="mt-4">
+                            <div class="flex justify-between items-center border-b border-slate-50 mb-2">
+                                <h4 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">${section.label}</h4>
+                                <button onclick="openAddSectionItem(${course.id}, '${key}', '${section.label}')" class="text-indigo-500 font-bold">+</button>
+                            </div>
+                            <div class="space-y-1">${itemsHtml || '<p class="text-[10px] italic text-slate-300">Empty</p>'}</div>
+                        </div>
+                    `;
+                }
+
+                let projectsHtml = course.projects.map(proj => {
+                    const progress = calculateProjectProgress(proj);
+                    const tasksHtml = proj.tasks.map(task => `
+                        <div class="flex items-center gap-2 py-1">
+                            <input type="checkbox" ${task.completed ? 'checked' : ''} onchange="toggleTask(${course.id}, ${proj.id}, ${task.id})" class="w-3.5 h-3.5 rounded text-emerald-600">
+                            <span class="text-xs ${task.completed ? 'line-through text-slate-300' : 'text-slate-700'}">${task.text}</span>
+                        </div>
+                    `).join('');
+
+                    return `
+                        <div class="bg-indigo-50/50 rounded-2xl p-4 border border-indigo-100/50 mb-3 relative group">
+                            <button onclick="deleteProject(${course.id}, ${proj.id})" class="absolute top-2 right-2 text-slate-300 hover:text-red-400 opacity-0 group-hover:opacity-100 transition text-xs">Delete</button>
+                            <div class="flex justify-between items-end mb-2">
+                                <h5 class="text-sm font-bold text-indigo-900">${proj.title}</h5>
+                                <span class="text-[10px] font-black text-indigo-600">${progress}%</span>
+                            </div>
+                            <div class="w-full bg-indigo-100 h-1.5 rounded-full overflow-hidden mb-3">
+                                <div class="progress-bar bg-indigo-500 h-full" style="width: ${progress}%"></div>
+                            </div>
+                            <div class="space-y-1">${tasksHtml}</div>
+                            <button onclick="openAddTask(${course.id}, ${proj.id})" class="mt-2 text-[10px] font-bold text-indigo-500 hover:text-indigo-700">+ Add Task to Project</button>
+                        </div>
+                    `;
+                }).join('');
+
+                card.innerHTML = `
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-indigo-100 text-indigo-600 uppercase">${course.type}</span>
+                            <h3 class="text-xl font-bold text-slate-800 mt-1">${course.name}</h3>
+                        </div>
+                        <button onclick="deleteCourse(${course.id})" class="text-slate-300 hover:text-red-500 transition">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>
+                    </div>
+                    <div class="mt-2">
+                        <div class="flex justify-between items-center mb-3">
+                            <h4 class="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">Active Projects</h4>
+                            <button onclick="openAddProject(${course.id})" class="bg-indigo-600 text-white text-[10px] px-3 py-1 rounded-full font-bold hover:bg-indigo-700 transition">Create New Project</button>
+                        </div>
+                        <div class="max-h-[300px] overflow-y-auto no-scrollbar">
+                            ${projectsHtml || '<p class="text-center text-xs text-slate-300 py-4 border-2 border-dashed border-slate-50 rounded-2xl">No projects created yet</p>'}
+                        </div>
+                    </div>
+                    <div class="border-t border-slate-50 mt-4 pt-2">
+                        ${sectionsHtml}
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+        window.onload = render;
+    </script>
+</body>
+</html>
